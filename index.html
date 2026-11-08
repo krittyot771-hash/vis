@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Blockcraft Tetris</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    :root{--leaf:#52a535;--stone:#a9a09d;--ink:#020303;--sky:#b9dfdf;--soil:#704c34}
+    *{box-sizing:border-box}body{margin:0;font-family:'Noto Sans Thai','Noto Sans',sans-serif;color:#eef7e9}
+    .world{min-height:100%;background:linear-gradient(165deg,#9dccd4 0%,#d0e7ce 34%,#537d48 34.2%,#314a32 58%,#423629 58.2%,#211f1c 100%);padding:16px}
+    .shell{max-width:1180px;margin:auto}.stone{background:#383c39;border:3px solid #a9a09d;box-shadow:inset 3px 3px #646a65,inset -4px -4px #171a18,5px 6px 0 #181e19;border-radius:4px}
+    .stone-btn{background:#626c62;color:white;border:2px solid #c3c6b7;box-shadow:inset 2px 2px #8d9687,inset -3px -3px #303831,3px 3px 0 #171c17;border-radius:3px;padding:10px 13px;font-weight:700;transition:transform .12s,filter .12s;cursor:pointer}
+    .stone-btn:hover{filter:brightness(1.16)}.stone-btn:active{transform:translate(2px,2px);box-shadow:none}.stone-btn:disabled{opacity:.5;cursor:not-allowed}
+    .green{background:#52a535;box-shadow:inset 2px 2px #8bd265,inset -3px -3px #2b6620,3px 3px 0 #171c17}
+    :focus-visible{outline:3px solid #ffdd70;outline-offset:3px}
+    .panel{background:#202b25ed;border:3px solid #788575;box-shadow:inset 3px 3px #3b4f3d,6px 7px 0 #162119;border-radius:4px}
+    .pixel-title{font-weight:800;letter-spacing:-.045em;text-shadow:3px 4px 0 #214720}
+    .muted{color:#c9dac6}.field{background:#111c17;border:2px solid #a9a09d;border-radius:3px;color:white;padding:10px 12px;width:100%}
+    .field::placeholder{color:#9fae9f}.field:focus{outline:3px solid #9cdd71}
+    canvas{display:block;image-rendering:pixelated;max-width:100%}
+    #board{width:min(100%,360px);aspect-ratio:1/2;background:#101c1c;border:5px solid #a9a09d;box-shadow:inset 0 0 0 2px #314d40,5px 6px 0 #111d16;margin:auto}
+    .mini{width:112px;height:88px;background:#111e19;border:2px solid #687b69;margin:8px auto}
+    .stat{background:#101d17;border-left:4px solid #52a535;padding:9px 12px}
+    .screen{display:none}.screen.active{display:block}.control{min-width:56px;min-height:48px;font-size:20px}
+    .badge{background:#254b2e;color:#d7ffcb;border:1px solid #79b46c;padding:3px 8px;border-radius:2px}
+    .check:checked+span{background:#52a535;color:#fff}.star{font-size:30px;line-height:1;color:#687364;background:none;border:0;padding:2px 5px;cursor:pointer}.star.selected{color:#ffd05e}
+    .scroll-table{overflow:auto}table{border-collapse:collapse;width:100%;min-width:850px}th,td{padding:10px;text-align:left;border-bottom:1px solid #536455;vertical-align:top}th{color:#bce9a8}
+    @media(max-width:720px){.world{padding:10px}.control{min-width:52px}.pixel-title{font-size:26px}}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17" type="text/javascript"></script>
+</head>
+<body data-template-id="__page-root" class="w-full" style="background: rgb(2, 3, 3);">
+  <div class="world w-full">
+    <div class="shell">
+      <header data-template-id="site-header" class="canva-header panel p-4 mb-5 flex flex-wrap items-center justify-between gap-4" style="background: rgb(32, 43, 37);">
+        <div class="flex items-center gap-3">
+          <div class="bg-[#101b15] p-2 border-2 border-[#81ae72]">
+            <img data-template-id="brand-logo" class="canva-image w-12 h-12 object-contain" loading="lazy" src="canva://MAHaWVCxz8k/1" alt="โลโก้แบรนด์">
+          </div>
+          <div>
+            <h1 data-template-id="game-title" class="canva-text pixel-title leading-tight" style="color: rgb(242, 248, 235); font-weight: 800; font-size: 32px;">Blockcraft Tetris</h1>
+            <p data-template-id="game-tagline" class="canva-text muted" style="color: rgb(201, 218, 198); font-size: 16px;">วางบล็อกให้ลงตัว แล้วพิชิตคะแนน!</p>
+          </div>
+        </div>
+        <button id="analytics-open" data-template-id="analytics-button" class="canva-button stone-btn" type="button">ดูสถิติผู้เล่น</button>
+      </header>
+      <main>
+        <!-- START SCREEN -->
+        <section id="start-screen" class="screen active">
+          <div class="grid lg:grid-cols-[1.1fr_.9fr] gap-5">
+            <div data-template-id="welcome-panel" class="canva-panel panel p-6 md:p-9" style="background: rgb(32, 43, 37);">
+              <div class="canva-tag badge inline-block mb-4">การผจญภัยในโลกบล็อก</div>
+              <h2 class="canva-text pixel-title mb-3" style="font-size: 24px;">พร้อมต่อบล็อกหรือยัง?</h2>
+              <p class="canva-text muted mb-6">เรียงแถว เก็บคอมโบ และรับมือเหตุการณ์ Creeper Surge ที่อาจเป็นทั้งโชคดีและอุปสรรค!</p>
+              <form id="start-form" class="space-y-5">
+                <div>
+                  <label class="canva-text block mb-2 font-bold" for="player-name">ชื่อเล่นหรือรหัสผู้เล่น</label>
+                  <input id="player-name" class="canva-input field" maxlength="32" autocomplete="nickname" required placeholder="ใส่ชื่อของคุณ">
+                </div>
+                <fieldset>
+                  <legend class="canva-text font-bold mb-2">เลือกโหมด</legend>
+                  <div class="flex flex-wrap gap-3">
+                    <label class="cursor-pointer"><input class="sr-only peer" type="radio" name="mode" value="Endless" checked><span class="stone-btn inline-block peer-checked:!bg-[#52a535]">Endless · เล่นได้เรื่อย ๆ</span></label>
+                    <label class="cursor-pointer"><input class="sr-only peer" type="radio" name="mode" value="Challenge"><span class="stone-btn inline-block peer-checked:!bg-[#52a535]">Challenge · เป้า 3,000 คะแนน</span></label>
+                  </div>
+                </fieldset>
+                <button class="canva-button stone-btn green w-full" type="submit">เริ่มเล่นเลย</button>
+              </form>
+              <p id="start-error" class="text-[#ffd47c] mt-3" role="alert"></p>
+            </div>
+            <aside class="canva-panel panel p-6" style="background: rgb(32, 43, 37);">
+              <h2 class="canva-text font-bold mb-4" style="font-size: 24px;">วิธีเล่นแบบเร็ว ๆ</h2>
+              <ul class="space-y-3 muted list-disc pl-5">
+                <li>← → ขยับ · ↓ เร่งลง · ↑ หมุน</li>
+                <li>Space ตกทันที · C พักชิ้น · P หยุดชั่วคราว</li>
+                <li>เคลียร์หลายแถวต่อเนื่องเพื่อสะสมคอมโบ</li>
+                <li>Creeper Surge อาจเพิ่มอุปสรรคหรือมอบโบนัส!</li>
+              </ul>
+              <div class="mt-6 border-t border-[#71816c] pt-5">
+                <p class="canva-text muted">เมื่อจบเกม คุณเลือกส่งคะแนนและความคิดเห็นลงระบบได้</p>
+              </div>
+            </aside>
+          </div>
+        </section>
+        <!-- GAME SCREEN -->
+        <section id="game-screen" class="screen">
+          <div class="grid lg:grid-cols-[220px_minmax(250px,360px)_220px] justify-center gap-4 items-start">
+            <aside class="panel p-4 space-y-3 order-2 lg:order-1">
+              <h2 class="canva-text font-bold" style="font-size: 24px;">การผจญภัยของคุณ</h2>
+              <div class="stat"><span class="canva-text muted block">คะแนน</span><strong id="score-value" aria-live="polite">0</strong></div>
+              <div class="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                <div class="stat"><span class="canva-text muted block">เลเวล</span><strong id="level-value">1</strong></div>
+                <div class="stat"><span class="canva-text muted block">แถวที่เคลียร์</span><strong id="lines-value">0</strong></div>
+                <div class="stat"><span class="canva-text muted block">คอมโบ</span><strong id="combo-value">0</strong></div>
+                <div class="stat"><span class="canva-text muted block">เวลา</span><strong id="time-value">00:00</strong></div>
+              </div>
+              <p id="mode-display" class="badge inline-block"></p>
+              <p id="game-message" class="text-[#ffe29b] min-h-7" aria-live="polite"></p>
+            </aside>
+            <div class="order-1 lg:order-2">
+              <canvas id="board" width="300" height="600" role="img" aria-label="กระดานเรียงบล็อก"></canvas>
+              <div class="panel mt-4 p-3">
+                <div class="flex justify-center gap-2 flex-wrap mb-3">
+                  <button id="left-btn" class="stone-btn control" type="button" aria-label="ซ้าย">←</button>
+                  <button id="rotate-btn" class="stone-btn control" type="button" aria-label="หมุน">↻</button>
+                  <button id="right-btn" class="stone-btn control" type="button" aria-label="ขวา">→</button>
+                  <button id="down-btn" class="stone-btn control" type="button" aria-label="เร่งลง">↓</button>
+                  <button id="drop-btn" class="stone-btn green control" type="button" aria-label="ตกทันที">⤓</button>
+                  <button id="hold-btn" class="stone-btn control" type="button" aria-label="พักชิ้น">พัก</button>
+                </div>
+                <div class="flex flex-wrap justify-center gap-2">
+                  <button id="pause-btn" class="canva-button stone-btn" type="button">หยุดชั่วคราว</button>
+                  <button id="resume-btn" class="canva-button stone-btn green hidden" type="button">เล่นต่อ</button>
+                  <button id="restart-btn" class="canva-button stone-btn" type="button">เริ่มใหม่</button>
+                  <button id="end-btn" class="canva-button stone-btn" type="button">จบเกม</button>
+                </div>
+              </div>
+            </div>
+            <aside class="panel p-4 order-3 text-center space-y-4">
+              <div>
+                <h2 class="canva-text font-bold" style="font-size: 24px;">ชิ้นถัดไป</h2>
+                <canvas id="next-preview" class="mini" width="112" height="88" role="img"></canvas>
+              </div>
+              <div>
+                <h2 class="canva-text font-bold" style="font-size: 24px;">ชิ้นที่พัก</h2>
+                <canvas id="hold-preview" class="mini" width="112" height="88" role="img"></canvas>
+              </div>
+              <button id="sound-btn" class="canva-button stone-btn w-full" type="button">เสียง: เปิด</button>
+              <span id="sound-off-label" class="canva-text hidden block" tabindex="0" role="button">เสียง: ปิด</span>
+            </aside>
+          </div>
+        </section>
+        <!-- END SCREEN -->
+        <section id="end-screen" class="screen">
+          <div class="panel max-w-2xl mx-auto p-6 md:p-8">
+            <h2 id="result-title" class="pixel-title mb-2">จบเกม!</h2>
+            <p id="result-detail" class="muted mb-5"></p>
+            <form id="feedback-form" class="space-y-5">
+              <fieldset>
+                <legend class="canva-text font-bold mb-2">ให้ดาวเกมนี้ 1–5 ดาว</legend>
+                <div id="stars" class="flex" role="group">
+                  <button type="button" class="star" data-rating="1">★</button>
+                  <button type="button" class="star" data-rating="2">★</button>
+                  <button type="button" class="star" data-rating="3">★</button>
+                  <button type="button" class="star" data-rating="4">★</button>
+                  <button type="button" class="star" data-rating="5">★</button>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend class="canva-text font-bold mb-2">ชอบส่วนไหนบ้าง? เลือกได้หลายข้อ</legend>
+                <div class="flex flex-wrap gap-2">
+                  <label><input type="checkbox" name="likes" value="ระบบคอมโบ" class="sr-only check"><span class="badge inline-block cursor-pointer">ระบบคอมโบ</span></label>
+                  <label><input type="checkbox" name="likes" value="ความเร็วเกม" class="sr-only check"><span class="badge inline-block cursor-pointer">ความเร็วเกม</span></label>
+                  <label><input type="checkbox" name="likes" value="ธีม voxel" class="sr-only check"><span class="badge inline-block cursor-pointer">ธีม voxel</span></label>
+                  <label><input type="checkbox" name="likes" value="เสียง/เอฟเฟกต์" class="sr-only check"><span class="badge inline-block cursor-pointer">เสียง/เอฟเฟกต์</span></label>
+                  <label><input type="checkbox" name="likes" value="ปุ่มควบคุม" class="sr-only check"><span class="badge inline-block cursor-pointer">ปุ่มควบคุม</span></label>
+                </div>
+              </fieldset>
+              <div>
+                <label class="canva-text block font-bold mb-2" for="feedback-text">สิ่งที่ไม่ชอบหรือข้อเสนอแนะ</label>
+                <textarea id="feedback-text" class="field min-h-24" maxlength="500" placeholder="เล่าให้ฟังได้เลย"></textarea>
+              </div>
+              <button id="submit-feedback" class="canva-button stone-btn green w-full" type="submit">ส่งคะแนนและแบบประเมิน</button>
+            </form>
+            <p id="feedback-status" class="mt-3 min-h-7" role="status"></p>
+            <button id="end-restart" class="canva-button stone-btn mt-3" type="button">เล่นอีกรอบ</button>
+          </div>
+        </section>
+        <!-- ANALYTICS SCREEN -->
+        <section id="analytics-screen" class="screen">
+          <div class="panel p-5 md:p-7">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div>
+                <h2 class="canva-text pixel-title" style="font-size: 24px;">สถิติการผจญภัย</h2>
+                <p class="canva-text muted">ข้อมูลที่ผู้เล่นส่งจริงเท่านั้น</p>
+              </div>
+              <button id="analytics-back" class="canva-button stone-btn" type="button">กลับไปเกม</button>
+            </div>
+            <div class="grid md:grid-cols-3 gap-3 mb-5">
+              <div class="stat"><span class="canva-text block muted">ผู้เล่นที่ส่งข้อมูล</span><strong id="players-count">0</strong></div>
+              <div class="stat"><span class="canva-text block muted">เป้าหมาย</span><strong>20 คน</strong></div>
+              <div class="stat"><span class="canva-text block muted">ความคืบหน้า</span><strong id="progress-count">0 / 20</strong></div>
+            </div>
+            <div class="h-4 bg-[#101b15] border border-[#82937f] mb-4">
+              <div id="progress-bar" class="h-full bg-[#52a535] transition-all" style="width:0%"></div>
+            </div>
+            <p id="analytics-wait" class="badge inline-block mb-5">รอข้อมูลจริง: ต้องมีผู้เล่นอย่างน้อย 20 คนเพื่อปลดล็อกสรุปผล</p>
+            <div id="analytics-summary" class="hidden grid md:grid-cols-2 gap-3 mb-5">
+              <div class="stat"><span class="canva-text block muted">ดาวเฉลี่ย</span><strong id="average-value"></strong></div>
+              <div class="stat"><span class="canva-text block muted">สิ่งที่ชอบมากที่สุด</span><strong id="top-like-value"></strong></div>
+              <div class="stat"><span class="canva-text block muted">ข้อเสนอแนะที่พบบ่อย</span><strong id="top-dislike-value"></strong></div>
+              <div class="stat"><span class="canva-text block muted">การกระจายดาว 1–5</span><strong id="distribution-value"></strong></div>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-4">
+              <button id="export-btn" class="canva-button stone-btn" type="button">ส่งออก CSV</button>
+              <button id="clear-btn" class="canva-button stone-btn" type="button">ล้างข้อมูลทั้งหมด</button>
+              <button id="confirm-clear" class="canva-button stone-btn hidden" type="button">ยืนยันล้างข้อมูล</button>
+              <button id="cancel-clear" class="canva-button stone-btn hidden" type="button">ยกเลิก</button>
+            </div>
+            <p id="analytics-status" class="text-[#ffe29b] mb-3" role="status"></p>
+            <h3 class="canva-text font-bold mb-2" style="font-size: 19px;">ข้อมูลรายคน</h3>
+            <div class="scroll-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ชื่อเล่น</th>
+                    <th>ดาว</th>
+                    <th>คะแนน</th>
+                    <th>เลเวล</th>
+                    <th>แถว</th>
+                    <th>โหมด</th>
+                    <th>เวลา (วินาที)</th>
+                    <th>สิ่งที่ชอบ</th>
+                    <th>ข้อเสนอแนะ</th>
+                    <th>วันที่</th>
+                  </tr>
+                </thead>
+                <tbody id="records-body"></tbody>
+              </table>
+            </div>
+            <p id="empty-records" class="canva-text muted mt-4">ยังไม่มีข้อมูลที่ส่งเข้ามา</p>
+          </div>
+        </section>
+      </main>
+      <footer class="text-center text-[#e0efda] py-6">
+        <p class="canva-text">สร้างโลกบล็อกของคุณเอง · สนุกกับทุกแถวที่เคลียร์</p>
+      </footer>
+    </div>
+  </div>
+
+<script type="module">
+  // ==========================================
+  // ส่วนตั้งค่า FIREBASE (เชื่อมต่อกับ Realtime Database ของเพื่อนคุณแล้ว)
+  // ==========================================
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getDatabase, ref, push, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSy_DummyKeyForRealtimeDB",
+    authDomain: "naynoie-63619.firebaseapp.com",
+    databaseURL: "https://naynoie-63619-default-rtdb.firebaseio.com/",
+    projectId: "naynoie-63619",
+    storageBucket: "naynoie-63619.appspot.com",
+    messagingSenderId: "",
+    appId: ""
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // ==========================================
+  // GAME LOGIC
+  // ==========================================
+  const $ = id => document.getElementById(id), screens=['start','game','end','analytics'];
+  let current='start', previous='start', records=[], ready=false, rating=0, sent=false, busy=false, sound=true, audio;
+  let board, piece, next, held, holdUsed, bag=[], score=0, lines=0, level=1, combo=0, ticks=0, started=0, pausedAt=0, pausedTotal=0, paused=false, ended=true, last=0, accumulator=0, surgeCooldown=0, playerId='', playerName='', mode='Endless';
+  const colors={I:'#66d8dc',O:'#f3d66a',T:'#ba8fe0',S:'#72ca70',Z:'#e87869',J:'#6f9bdf',L:'#e5a668',X:'#747b77'};
+  const shapes={I:[[1,1,1,1]],O:[[1,1],[1,1]],T:[[0,1,0],[1,1,1]],S:[[0,1,1],[1,1,0]],Z:[[1,1,0],[0,1,1]],J:[[1,0,0],[1,1,1]],L:[[0,0,1],[1,1,1]]};
+  
+  function show(name){screens.forEach(s=>$(s+'-screen').classList.toggle('active',s===name));current=name;window.scrollTo({top:0,behavior:'smooth'})}
+  function message(s){$('game-message').textContent=s}
+  function beep(freq=360,duration=.07){if(!sound)return;try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.type='square';o.frequency.value=freq;g.gain.setValueAtTime(.035,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+duration)}catch(e){}}
+  function randomType(){if(!bag.length)bag=['I','O','T','S','Z','J','L'].sort(()=>Math.random()-.5);return bag.pop()}
+  function spawn(type){const m=shapes[type].map(row=>row.slice());piece={type,m,x:Math.floor((10-m[0].length)/2),y:0};if(collides(piece.m,piece.x,piece.y))finish(false)}
+  function collides(m,x,y){return m.some((row,dy)=>row.some((v,dx)=>v&&(x+dx<0||x+dx>=10||y+dy>=20||(y+dy>=0&&board[y+dy][x+dx]))))}
+  function move(dx,dy){if(ended||paused||current!=='game')return false;if(!collides(piece.m,piece.x+dx,piece.y+dy)){piece.x+=dx;piece.y+=dy;draw();return true}if(dy)lock();return false}
+  function rotate(){if(ended||paused||current!=='game')return;const m=piece.m[0].map((_,i)=>piece.m.map(row=>row[i]).reverse());for(const offset of [0,-1,1,-2,2])if(!collides(m,piece.x+offset,piece.y)){piece.m=m;piece.x+=offset;beep(490);draw();return}}
+  function hardDrop(){if(ended||paused||current!=='game')return;let distance=0;while(!collides(piece.m,piece.x,piece.y+1)){piece.y++;distance++}score+=distance*2;lock();beep(180,.12)}
+  function hold(){if(ended||paused||holdUsed||current!=='game')return;const type=piece.type;if(held)spawn(held);else spawn(next),next=randomType();held=type;holdUsed=true;beep(430);update();draw()}
+  function lock(){if(ended)return;piece.m.forEach((row,dy)=>row.forEach((v,dx)=>{if(v&&piece.y+dy>=0)board[piece.y+dy][piece.x+dx]=piece.type}));let cleared=0;for(let y=19;y>=0;y--)if(board[y].every(Boolean)){board.splice(y,1);board.unshift(Array(10).fill(null));cleared++;y++}
+    if(cleared){combo++;score+=([0,100,300,500,800][cleared]*level)+Math.max(0,combo-1)*50*level;lines+=cleared;level=1+Math.floor(lines/10);message('เคลียร์ '+cleared+' แถว! คอมโบ '+combo);beep(720,.15)}
+    else{combo=0;message('')}
+    if(mode==='Challenge'&&score>=3000){finish(true);return}
+    if(surgeCooldown>0)surgeCooldown--;else if(Math.random()<.085){surgeCooldown=4;if(Math.random()<.5){const spots=board[19].map((v,i)=>!v?i:-1).filter(i=>i>=0);if(spots.length){board[19][spots[Math.floor(Math.random()*spots.length)]]='X';message('Creeper Surge: มีบล็อกอุปสรรคเพิ่มหนึ่งช่อง!')}}else{score+=75*level;message('Creeper Surge: โบนัส '+75*level+' คะแนน!')}beep(120,.18)}
+    spawn(next);next=randomType();holdUsed=false;update();draw()
+  }
+  function elapsed(){return Math.max(0,Math.floor(((paused?pausedAt:Date.now())-started-pausedTotal)/1000))}
+  function update(){ $('score-value').textContent=score.toLocaleString('th-TH');$('lines-value').textContent=lines;$('level-value').textContent=level;$('combo-value').textContent=combo;$('time-value').textContent=String(Math.floor(elapsed()/60)).padStart(2,'0')+':'+String(elapsed()%60).padStart(2,'0');$('mode-display').textContent=mode==='Challenge'?'Challenge · เป้า 3,000':'Endless';preview('next-preview',next);preview('hold-preview',held)}
+  function tile(ctx,x,y,size,type,ghost=false){const px=x*size,py=y*size;ctx.globalAlpha=ghost?.32:1;ctx.fillStyle=colors[type];ctx.fillRect(px+1,py+1,size-2,size-2);ctx.fillStyle='rgba(255,255,255,.35)';ctx.fillRect(px+2,py+2,size-4,3);ctx.fillRect(px+2,py+2,3,size-4);ctx.fillStyle='rgba(0,0,0,.32)';ctx.fillRect(px+size-5,py+3,3,size-5);ctx.fillRect(px+3,py+size-5,size-6,3);ctx.globalAlpha=1}
+  function draw(){const c=$('board'),ctx=c.getContext('2d');ctx.fillStyle='#101d1a';ctx.fillRect(0,0,300,600);for(let y=0;y<20;y++)for(let x=0;x<10;x++){ctx.fillStyle=(x+y)%2?'#182923':'#1c3028';ctx.fillRect(x*30+1,y*30+1,28,28);if(board&&board[y][x])tile(ctx,x,y,30,board[y][x])}
+    if(piece&&!ended){let gy=piece.y;while(!collides(piece.m,piece.x,gy+1))gy++;piece.m.forEach((row,dy)=>row.forEach((v,dx)=>{if(v&&gy+dy>=0)tile(ctx,piece.x+dx,gy+dy,30,piece.type,true)}));piece.m.forEach((row,dy)=>row.forEach((v,dx)=>{if(v&&piece.y+dy>=0)tile(ctx,piece.x+dx,piece.y+dy,30,piece.type)}))}
+    if(paused){ctx.fillStyle='#07140dcc';ctx.fillRect(0,0,300,600);ctx.fillStyle='#ffffff';ctx.font='bold 25px sans-serif';ctx.textAlign='center';ctx.fillText('หยุดชั่วคราว',150,300)}
+  }
+  function preview(id,type){const c=$(id),ctx=c.getContext('2d');ctx.fillStyle='#111e19';ctx.fillRect(0,0,112,88);if(!type)return;const m=shapes[type],s=22,ox=Math.floor((112-m[0].length*s)/2),oy=Math.floor((88-m.length*s)/2);m.forEach((row,y)=>row.forEach((v,x)=>{if(v){ctx.save();ctx.translate(ox,oy);tile(ctx,x,y,s,type);ctx.restore()}}))}
+  function start(){playerName=$('player-name').value.trim();if(!playerName){$('start-error').textContent='กรุณาใส่ชื่อเล่นก่อนเริ่มเกม';return}$('start-error').textContent='';playerId=crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);mode=document.querySelector('input[name="mode"]:checked').value;board=Array.from({length:20},()=>Array(10).fill(null));bag=[];held=null;next=randomType();holdUsed=false;score=0;level=1;lines=0;combo=0;surgeCooldown=0;pausedTotal=0;paused=false;ended=false;sent=false;rating=0;started=Date.now();last=0;accumulator=0;$('feedback-form').reset();$('feedback-form').classList.remove('hidden');$('feedback-status').textContent='';$('submit-feedback').disabled=false;paintStars();spawn(randomType());$('pause-btn').classList.remove('hidden');$('resume-btn').classList.add('hidden');message('พร้อมลุย!');show('game');update();draw();beep(520)}
+  function finish(win){if(ended)return;const duration=elapsed();ended=true;paused=false;$('result-title').textContent=win?'พิชิตเป้าหมายแล้ว!':'จบเกม!';$('result-detail').textContent=playerName+' · '+score.toLocaleString('th-TH')+' คะแนน · '+lines+' แถว · '+duration+' วินาที';show('end');beep(win?880:220,.22)}
+  function pause(){if(ended||paused)return;paused=true;pausedAt=Date.now();$('pause-btn').classList.add('hidden');$('resume-btn').classList.remove('hidden');draw()}
+  function resume(){if(!paused)return;pausedTotal+=Date.now()-pausedAt;paused=false;last=0;$('pause-btn').classList.remove('hidden');$('resume-btn').classList.add('hidden');draw()}
+  function frame(t){if(!ended&&!paused&&current==='game'){if(last)accumulator+=Math.min(t-last,100);last=t;if(accumulator>=Math.max(90,800*Math.pow(.82,level-1))){accumulator=0;move(0,1)}if(Math.floor(t/250)!==ticks){ticks=Math.floor(t/250);update()}}else last=0;requestAnimationFrame(frame)}
+  function paintStars(){document.querySelectorAll('.star').forEach(b=>{b.classList.toggle('selected',Number(b.dataset.rating)<=rating);b.setAttribute('aria-pressed',String(Number(b.dataset.rating)===rating))})}
+  function csvCell(v){return '"'+String(v??'').replace(/"/g,'""').replace(/^[=+\-@\t\r]/,'\'$&')+'"'}
+  
+  function analytics(){const unique=new Set(records.map(r=>r.player_id)).size;$('players-count').textContent=unique;$('progress-count').textContent=Math.min(unique,20)+' / 20';$('progress-bar').style.width=Math.min(100,unique*5)+'%';$('analytics-wait').classList.toggle('hidden',unique>=20);$('analytics-summary').classList.toggle('hidden',unique<20);$('empty-records').classList.toggle('hidden',records.length>0);
+    if(unique>=20){$('average-value').textContent=(records.reduce((n,r)=>n+Number(r.star_rating||0),0)/records.length).toFixed(2)+' / 5';const dist=[1,2,3,4,5].map(n=>records.filter(r=>Number(r.star_rating)===n).length);$('distribution-value').textContent=dist.map((n,i)=>(i+1)+'★ '+n).join(' · ');const counts={};records.forEach(r=>String(r.liked_features||'').split(' | ').filter(Boolean).forEach(v=>counts[v]=(counts[v]||0)+1));$('top-like-value').textContent=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.join(' · ')||'ยังไม่มีรายการ';const feedback=records.map(r=>String(r.disliked_feedback||'').trim()).filter(Boolean);const frequency={};feedback.forEach(v=>frequency[v]=(frequency[v]||0)+1);$('top-dislike-value').textContent=Object.entries(frequency).sort((a,b)=>b[1]-a[1])[0]?.join(' · ')||'ยังไม่มีข้อเสนอแนะ'}
+    const tbody=$('records-body'),existing=new Map([...tbody.children].map(el=>[el.dataset.id,el]));records.forEach(r=>{let tr=existing.get(r.__backendId);if(!tr){tr=document.createElement('tr');tr.dataset.id=r.__backendId;for(let i=0;i<10;i++)tr.appendChild(document.createElement('td'));tbody.appendChild(tr)}const values=[r.player_name,r.star_rating,r.score,r.level,r.lines_cleared,r.game_mode,r.play_time_seconds,r.liked_features,r.disliked_feedback,new Date(r.played_at).toLocaleString('th-TH')];values.forEach((v,i)=>{const text=String(v??'');if(tr.children[i].textContent!==text)tr.children[i].textContent=text});existing.delete(r.__backendId)});existing.forEach(el=>el.remove())
+  }
+  
+  $('start-form').addEventListener('submit',e=>{e.preventDefault();start()});
+  [['left-btn',()=>move(-1,0)],['right-btn',()=>move(1,0)],['down-btn',()=>{if(move(0,1)){score++;update()}}],['rotate-btn',rotate],['drop-btn',hardDrop],['hold-btn',hold],['pause-btn',pause],['resume-btn',resume],['end-btn',()=>finish(false)],['restart-btn',start],['end-restart',start]].forEach(([id,fn])=>$(id).addEventListener('click',fn));
+  document.addEventListener('keydown',e=>{if(current!=='game'||/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;const actions={ArrowLeft:()=>move(-1,0),ArrowRight:()=>move(1,0),ArrowDown:()=>{if(move(0,1)){score++;update()}},ArrowUp:rotate,' ':hardDrop,c:hold,C:hold,p:()=>paused?resume():pause(),P:()=>paused?resume():pause()};if(actions[e.key]){e.preventDefault();actions[e.key]()}});
+  $('sound-btn').addEventListener('click',()=>{sound=!sound;$('sound-btn').classList.toggle('hidden',!sound);$('sound-off-label').classList.toggle('hidden',sound)});$('sound-off-label').addEventListener('click',()=>{sound=true;$('sound-btn').classList.remove('hidden');$('sound-off-label').classList.add('hidden');beep()});$('sound-off-label').tabIndex=0;$('sound-off-label').setAttribute('role','button');$('sound-off-label').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('sound-off-label').click()}});
+  document.querySelectorAll('.star').forEach(b=>b.addEventListener('click',()=>{rating=Number(b.dataset.rating);paintStars()}));
+  
+  // Submit Feedback (CREATE) สำหรับ Realtime Database
+  $('feedback-form').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const status=$('feedback-status');
+    if(!Number.isInteger(rating)||rating<1||rating>5){status.textContent='กรุณาเลือกดาว 1–5 ดาว';return}
+    if(sent||records.some(r=>r.player_id===playerId)){status.textContent='รอบนี้ส่งแบบประเมินแล้ว';return}
+    if(!ready){status.textContent='ยังเชื่อมต่อฐานข้อมูลไม่ได้ กรุณาลองอีกครั้ง';return}
+    if(records.length>=999){status.textContent='ข้อมูลเต็ม 999 รายการ กรุณาติดต่อผู้ดูแล';return}
+    if(busy)return;
+    busy=true;
+    $('submit-feedback').disabled=true;
+    status.textContent='กำลังบันทึก...';
+    try {
+      const newRecordRef = push(ref(db, 'records'));
+      await set(newRecordRef, {
+        player_id:playerId,
+        player_name:playerName,
+        star_rating:rating,
+        score,
+        level,
+        lines_cleared:lines,
+        game_mode:mode,
+        play_time_seconds:elapsed(),
+        liked_features:[...document.querySelectorAll('input[name="likes"]:checked')].map(el=>el.value).join(' | '),
+        disliked_feedback:$('feedback-text').value.trim(),
+        played_at:new Date().toISOString()
+      });
+      sent=true;
+      $('feedback-form').classList.add('hidden');
+      status.textContent='บันทึกคะแนนและความคิดเห็นลงฐานข้อมูลแล้ว ขอบคุณที่ร่วมผจญภัย!';
+    } catch(err) {
+      status.textContent='บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง';
+      $('submit-feedback').disabled=false;
+    } finally {
+      busy=false;
+    }
+  });
+  
+  $('analytics-open').addEventListener('click',()=>{previous=current;if(current==='game'&&!paused)pause();analytics();show('analytics')});$('analytics-back').addEventListener('click',()=>show(previous));
+  $('export-btn').addEventListener('click',()=>{if(!records.length){$('analytics-status').textContent='ยังไม่มีข้อมูลให้ส่งออก';return}const keys=['player_id','player_name','star_rating','score','level','lines_cleared','game_mode','play_time_seconds','liked_features','disliked_feedback','played_at'];const csv='\uFEFF'+[keys.join(','),...records.map(r=>keys.map(k=>csvCell(r[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='blockcraft-tetris-results.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);$('analytics-status').textContent='ส่งออกข้อมูลแล้ว'});
+  
+  function clearConfirm(on){$('confirm-clear').classList.toggle('hidden',!on);$('cancel-clear').classList.toggle('hidden',!on);$('clear-btn').classList.toggle('hidden',on);$('analytics-status').textContent=on?'ยืนยันลบข้อมูลทั้งหมดในฐานข้อมูล? การดำเนินการนี้ย้อนกลับไม่ได้':''}
+  $('clear-btn').addEventListener('click',()=>clearConfirm(true));$('cancel-clear').addEventListener('click',()=>clearConfirm(false));
+  
+  // Clear All (DELETE) สำหรับ Realtime Database
+  $('confirm-clear').addEventListener('click',async()=>{
+    if(busy)return;
+    if(!ready){$('analytics-status').textContent='ยังเชื่อมต่อฐานข้อมูลไม่ได้';return}
+    busy=true;
+    $('confirm-clear').disabled=true;
+    $('analytics-status').textContent='กำลังล้างข้อมูล...';
+    let failed=0;
+    for(const row of [...records]){
+      try{
+        await remove(ref(db, `records/${row.__backendId}`));
+      }catch(err){
+        failed++;
+      }
+    }
+    busy=false;
+    $('confirm-clear').disabled=false;
+    clearConfirm(false);
+    $('analytics-status').textContent=failed?'ลบไม่ครบ '+failed+' รายการ กรุณาลองอีกครั้ง':'ล้างข้อมูลทั้งหมดแล้ว';
+  });
+  
+  // Firebase Init & Real-time Listener (READ/INIT) สำหรับ Realtime Database
+  try {
+    const recordsRef = ref(db, 'records');
+    onValue(recordsRef, (snapshot) => {
+      const data = snapshot.val();
+      records = [];
+      if (data) {
+        for (const [key, value] of Object.entries(data)) {
+          records.push({ __backendId: key, ...value });
+        }
+      }
+      analytics();
+    });
+    ready = true;
+  } catch(err) {
+    $('analytics-status').textContent='เชื่อมต่อ Firebase ไม่สำเร็จ';
+  }
+
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>
